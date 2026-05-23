@@ -25,7 +25,8 @@
 
 ## 截图
 
-![ClipPilot](screenshot.png)
+![ClipPilot](<img width="499" height="606" alt="image" src="https://github.com/user-attachments/assets/f1d0c2ef-6e8d-4bc9-b355-86f3e64a1d69" />
+)
 
 > 截图待补充
 
