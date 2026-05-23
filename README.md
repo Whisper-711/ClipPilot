@@ -25,10 +25,10 @@
 
 ## 截图
 
-![ClipPilot](<img width="499" height="606" alt="image" src="https://github.com/user-attachments/assets/f1d0c2ef-6e8d-4bc9-b355-86f3e64a1d69" />
-)
+![ClipPilot]
+<img width="499" height="606" alt="image" src="https://github.com/user-attachments/assets/5421bcbd-87e4-4107-b42c-58fd42455a99" />
 
-> 截图待补充
+
 
 ## 安装
 
