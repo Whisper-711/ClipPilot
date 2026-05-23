@@ -25,7 +25,6 @@
 
 ## 截图
 
-![ClipPilot]
 <img width="499" height="606" alt="image" src="https://github.com/user-attachments/assets/5421bcbd-87e4-4107-b42c-58fd42455a99" />
 
 
