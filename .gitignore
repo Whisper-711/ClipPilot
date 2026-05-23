@@ -1,0 +1,28 @@
+# Build
+dist/
+build/
+*.spec
+__pycache__/
+*.pyc
+*.pyo
+
+# Database & config
+*.db
+config.json
+
+# Env
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude
+.claude/
+
+# Temp files
+*.db-shm
+*.db-wal
+cream_final.png

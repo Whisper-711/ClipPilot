@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipPilot</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', sans-serif; }
+  body { background: #FFF8F0; color: #1A1A1A; display: flex; flex-direction: column; user-select: none; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #DDD5C8; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #C8C0B4; }
+
+  /* ── Title Bar ── */
+  #titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 38px; padding: 0 12px;
+    background: #FFF8F0; border-bottom: 1px solid #EDE4D8;
+    -webkit-app-region: drag; flex-shrink: 0;
+  }
+  #titlebar .logo { font-size: 13px; font-weight: 600; color: #1A1A1A; letter-spacing: 0.5px; }
+  #titlebar .logo span { color: #999; font-weight: 400; margin-left: 4px; }
+  #titlebar .actions { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+  #titlebar .actions button {
+    width: 28px; height: 28px; border: none; border-radius: 6px;
+    background: transparent; color: #666; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  #titlebar .actions button:hover { background: #EDE4D8; color: #1A1A1A; }
+  #titlebar .actions .close:hover { background: #E81123; color: #fff; }
+
+  /* ── Search Bar ── */
+  #search-wrap {
+    padding: 10px 14px 6px; flex-shrink: 0;
+  }
+  #search-wrap .input-group {
+    display: flex; align-items: center;
+    background: #fff; border: 1.5px solid #EDE4D8;
+    border-radius: 10px; padding: 0 12px;
+    transition: border-color 0.2s;
+  }
+  #search-wrap .input-group:focus-within { border-color: #1A1A1A; }
+  #search-wrap .input-group .icon { color: #BBB; font-size: 15px; margin-right: 8px; }
+  #search-wrap .input-group input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 13px; padding: 9px 0; color: #1A1A1A; user-select: text;
+  }
+  #search-wrap .input-group input::placeholder { color: #CCC; }
+  #search-wrap .input-group .clear-btn {
+    background: none; border: none; color: #BBB; cursor: pointer;
+    font-size: 16px; padding: 4px; display: none;
+  }
+  #search-wrap .input-group .clear-btn.visible { display: block; }
+  #search-wrap .input-group .clear-btn:hover { color: #666; }
+
+  /* ── List ── */
+  #list-wrap { flex: 1; overflow-y: auto; padding: 4px 10px 4px; }
+  #empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; color: #CCC;
+    font-size: 14px; gap: 8px;
+  }
+  #empty-state .big-icon { font-size: 40px; opacity: 0.5; }
+
+  /* ── Card ── */
+  .card {
+    background: #fff; border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card .content {
+    font-size: 13px; line-height: 1.5; color: #1A1A1A;
+    word-break: break-all; cursor: pointer; user-select: text;
+    padding-right: 4px;
+  }
+  .card .content:hover { color: #000; }
+  .card .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 6px;
+  }
+  .card .meta .time { font-size: 11px; color: #AAA; }
+  .card .meta .btns { display: flex; gap: 4px; }
+  .card .meta .btns button {
+    padding: 4px 10px; border: none; border-radius: 6px;
+    font-size: 11px; cursor: pointer; transition: all 0.15s;
+    background: #F5F0EB; color: #555;
+  }
+  .card .meta .btns button:hover { background: #1A1A1A; color: #fff; }
+  .card .meta .btns button.copied { background: #1A1A1A; color: #fff; }
+  .card .translation {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #F0E8DE;
+    font-size: 12px; color: #888; line-height: 1.5; display: none;
+  }
+  .card .translation.visible { display: block; animation: fadeSlide 0.2s ease; }
+  .card .translation .lang-badge {
+    display: inline-block; background: #F5F0EB; padding: 1px 6px;
+    border-radius: 4px; font-size: 10px; color: #888; margin-right: 6px;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Load More ── */
+  #load-more-wrap { padding: 0 10px 8px; flex-shrink: 0; }
+  #load-more {
+    width: 100%; padding: 8px; border: 1px solid #EDE4D8;
+    border-radius: 8px; background: transparent; color: #888;
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  #load-more:hover { background: #EDE4D8; color: #555; }
+
+  /* ── Status Bar ── */
+  #statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 14px; border-top: 1px solid #EDE4D8;
+    font-size: 11px; color: #BBB; flex-shrink: 0;
+  }
+  #statusbar .right { display: flex; gap: 12px; align-items: center; }
+  #statusbar kbd {
+    background: #EDE4D8; padding: 1px 5px; border-radius: 3px;
+    font-size: 10px; font-family: inherit; color: #888;
+  }
+  #statusbar .clear-link {
+    background: none; border: none; color: #BBB; cursor: pointer;
+    font-size: 11px; padding: 0; transition: color 0.15s;
+  }
+  #statusbar .clear-link:hover { color: #E81123; }
+</style>
+</head>
+<body>
+
+<!-- Title Bar -->
+<div id="titlebar">
+  <div class="logo">ClipPilot <span>剪贴板</span></div>
+  <div class="actions">
+    <button id="btnTop" title="置顶" onclick="toggleTop()">📌</button>
+    <button class="close" title="关闭" onclick="closeWin()">✕</button>
+  </div>
+</div>
+
+<!-- Search -->
+<div id="search-wrap">
+  <div class="input-group">
+    <span class="icon">🔍</span>
+    <input id="searchInput" type="text" placeholder="搜索剪贴板历史…" oninput="onSearch()">
+    <button class="clear-btn" id="clearSearchBtn" onclick="clearSearch()">✕</button>
+  </div>
+</div>
+
+<!-- List -->
+<div id="list-wrap">
+  <div id="empty-state">
+    <div class="big-icon">📋</div>
+    <div>暂无剪贴板记录</div>
+    <div style="font-size:12px;color:#DDD;">复制任意内容后自动显示在此</div>
+  </div>
+  <div id="card-container"></div>
+</div>
+
+<!-- Load More -->
+<div id="load-more-wrap" style="display:none">
+  <button id="load-more" onclick="loadMore()">加载更多</button>
+</div>
+
+<!-- Status Bar -->
+<div id="statusbar">
+  <span id="statusCount">0 条记录</span>
+  <div class="right">
+    <button class="clear-link" onclick="clearAll()">清空历史</button>
+    <span><kbd>Ctrl+Alt+V</kbd> 唤出</span>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let page = 0;
+  let PAGE_SIZE = 50;
+  let loading = false;
+  let hasMore = true;
+  let currentSearch = '';
+
+  // ── API：等待 pywebview 桥接就绪 ──
+  async function api(method, ...args) {
+    for (let i = 0; i < 100 && !window.pywebview; i++) {
+      await new Promise(r => setTimeout(r, 30));
+    }
+    if (!window.pywebview) {
+      console.warn('pywebview not available');
+      return null;
+    }
+    return await window.pywebview.api[method](...args);
+  }
+
+  // ── Load ──
+  async function loadHistory(append = false) {
+    if (loading) return;
+    loading = true;
+
+    if (!append) {
+      page = 0;
+    }
+
+    try {
+      const data = await api('get_history', currentSearch, page * PAGE_SIZE, PAGE_SIZE);
+      if (!data) return;
+
+      const container = document.getElementById('card-container');
+      if (!append) {
+        container.innerHTML = '';
+      }
+
+      const items = data.items || [];
+      hasMore = data.has_more;
+
+      let html = '';
+      for (const item of items) {
+        const preview = item.content.length > 150
+          ? item.content.slice(0, 150) + '…'
+          : item.content;
+        const time = item.created_at ? item.created_at.slice(5, 16) : '';
+
+        html += `
+          <div class="card" data-id="${item.id}">
+            <div class="content" onclick="copyItem(${item.id})" title="点击复制">${escapeHtml(preview)}</div>
+            <div class="meta">
+              <span class="time">${escapeHtml(time)}</span>
+              <div class="btns">
+                <button onclick="copyItem(${item.id})" id="copy-${item.id}">复制</button>
+                <button onclick="translateItem(${item.id})" id="trans-${item.id}">翻译</button>
+              </div>
+            </div>
+            <div class="translation" id="trans-result-${item.id}"></div>
+          </div>`;
+      }
+
+      if (!append) container.innerHTML = html;
+      else container.insertAdjacentHTML('beforeend', html);
+
+      page++;
+
+      // Load more button
+      const lmWrap = document.getElementById('load-more-wrap');
+      const lmBtn = document.getElementById('load-more');
+      if (hasMore) {
+        lmWrap.style.display = 'block';
+        lmBtn.textContent = `加载更多（${data.remaining || '?'} 条）`;
+      } else {
+        lmWrap.style.display = 'none';
+      }
+
+      // Status
+      document.getElementById('statusCount').textContent = `${data.total || 0} 条记录`;
+
+      // Empty state
+      document.getElementById('empty-state').style.display =
+        (data.total === 0 || !data.total) ? 'flex' : 'none';
+
+    } catch (e) {
+      console.error('loadHistory error:', e);
+    }
+
+    loading = false;
+  }
+
+  // ── Search ──
+  let searchTimer = null;
+  function onSearch() {
+    const val = document.getElementById('searchInput').value;
+    document.getElementById('clearSearchBtn').classList.toggle('visible', val.length > 0);
+    clearTimeout(searchTimer);
+    currentSearch = val;
+    searchTimer = setTimeout(() => loadHistory(false), 250);
+  }
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('clearSearchBtn').classList.remove('visible');
+    currentSearch = '';
+    loadHistory(false);
+  }
+
+  // ── Load More ──
+  function loadMore() {
+    loadHistory(true);
+  }
+
+  // ── Copy ──
+  async function copyItem(id) {
+    const data = await api('get_content_by_id', id);
+    if (data) {
+      await api('copy', data.content);
+      const btn = document.getElementById(`copy-${id}`);
+      if (btn) {
+        btn.textContent = '✓ 已复制';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+      }
+    }
+  }
+
+  // ── Translate ──
+  async function translateItem(id) {
+    const btn = document.getElementById(`trans-${id}`);
+    const resultDiv = document.getElementById(`trans-result-${id}`);
+    if (!btn || !resultDiv) return;
+
+    // Toggle close
+    if (resultDiv.classList.contains('visible')) {
+      resultDiv.classList.remove('visible');
+      btn.textContent = '翻译';
+      return;
+    }
+
+    btn.textContent = '…';
+    btn.disabled = true;
+
+    try {
+      const data = await api('get_content_by_id', id);
+      if (!data) return;
+      const res = await api('translate', data.content);
+      if (res) {
+        const langLabel = res.source === 'zh' ? '中→英' : '英→中';
+        resultDiv.innerHTML = `<span class="lang-badge">${langLabel}</span>${escapeHtml(res.result)}`;
+        resultDiv.classList.add('visible');
+        btn.textContent = '收起';
+      }
+    } catch (e) {
+      resultDiv.innerHTML = '翻译失败';
+      resultDiv.classList.add('visible');
+      btn.textContent = '重试';
+    }
+    btn.disabled = false;
+  }
+
+  // ── Top ──
+  let isPinned = false;
+  async function toggleTop() {
+    isPinned = !isPinned;
+    document.getElementById('btnTop').style.opacity = isPinned ? '1' : '0.4';
+    await api('set_always_on_top', isPinned);
+  }
+
+  // ── Close / Clear ──
+  function closeWin() { api('hide_window'); }
+
+  async function clearAll() {
+    if (!confirm('确定要清空所有剪贴板历史吗？')) return;
+    await api('clear_all');
+    loadHistory(false);
+  }
+
+  // ── Refresh (called from Python when clipboard changes) ──
+  function refreshHistory() {
+    // Only refresh if search is empty and user isn't mid-scroll
+    if (!currentSearch) {
+      loadHistory(false);
+    }
+  }
+
+  // ── Utility ──
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ── Init ──
+  document.addEventListener('DOMContentLoaded', () => {
+    loadHistory(false);
+  });
+</script>
+</body>
+</html>
